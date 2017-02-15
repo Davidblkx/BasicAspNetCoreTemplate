@@ -1,5 +1,8 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OwnAspNetCore.Infra;
@@ -17,7 +20,22 @@ namespace OwnAspNetCore
             services.AddSingleton<ISettings>(SettingsProvider.LoadSettings());
             services.AddSingleton<IDatabase>(new LiteDbProvider());
 
-            services.AddMvc();
+            //Set Admin policy
+            services.AddAuthorization(o =>
+           {
+               o.AddPolicy(UserRoles.Admin, p => p.AddRequirements(new HasRoleRequirement(UserRoles.Admin)));
+           });
+
+            //Set MVC with default lockdown
+            services.AddMvc(
+                config =>
+                {
+                    var policy = new AuthorizationPolicyBuilder()
+                                     .RequireAuthenticatedUser()
+                                     .Build();
+                    config.Filters.Add(new AuthorizeFilter(policy));
+                }
+            );
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -29,6 +47,15 @@ namespace OwnAspNetCore
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            app.UseCookieAuthentication(new CookieAuthenticationOptions()
+            {
+                AuthenticationScheme = "CookieAuth",
+                LoginPath = new PathString("/Login"),
+                AccessDeniedPath = new PathString("/Forbidden"),
+                AutomaticAuthenticate = true,
+                AutomaticChallenge = true,
+            });
 
             app.UseStaticFiles();
 
