@@ -1,0 +1,6 @@
+
+.suo/
+.vscode/
+bin/
+obj/
+wwwroot/
