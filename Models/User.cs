@@ -19,10 +19,15 @@ namespace OwnAspNetCore.Models
         }
 
         private List<string> _roles;
+        private string _username;
 
         public int Id { get; set; }
 
-        public string Username { get; set; }
+        public string Username
+        {
+            get { return _username.ToLower(); }
+            set { _username = value.ToLower(); }
+        }
 
         public string Hash { get; set; }
 

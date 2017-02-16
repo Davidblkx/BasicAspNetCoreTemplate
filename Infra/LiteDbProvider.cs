@@ -4,6 +4,7 @@ using LiteDB;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Linq;
 
 namespace OwnAspNetCore.Infra
 {
@@ -15,10 +16,12 @@ namespace OwnAspNetCore.Infra
         public LiteDbProvider()
         {
             var mapper = BsonMapper.Global;
-                mapper.Entity<IDbEntry>()
-                    .Id(x => x.Id, true);
+            mapper.Entity<IDbEntry>()
+                .Id(x => x.Id, true);
 
             _db = new LiteDatabase(_dbName, mapper);
+
+            CreateInitialUsers();
         }
 
         public string Path => _dbName;
@@ -66,6 +69,41 @@ namespace OwnAspNetCore.Infra
         public IEnumerable<T> Search<T>(Expression<Func<T, bool>> predicate) where T : IDbEntry
         {
             return GetCollection<T>().Find(predicate);
+        }
+
+        private void CreateInitialUsers()
+        {
+            var admin = NewDefaultAdmin();
+            var user = NewDefaultUser();
+
+            if(!Search<User>(x=>x.Username == admin.Username).Any())
+                Insert(admin);
+            
+            if(!Search<User>(x => x.Username == user.Username).Any())
+                Insert(user);
+        }
+
+        private User NewDefaultAdmin()
+        {
+            var admin = new User();
+
+            admin.Username = "Admin";
+            admin.SetNewPassword("admin");
+            admin.AddRole(UserRoles.Admin);
+            admin.AddRole(UserRoles.Basic);
+
+            return admin;
+        }
+
+        private User NewDefaultUser()
+        {
+            var user = new User();
+
+            user.Username = "User";
+            user.SetNewPassword("user");
+            user.AddRole(UserRoles.Basic);
+
+            return user;
         }
     }
 }
